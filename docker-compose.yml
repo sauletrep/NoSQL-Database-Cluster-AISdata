@@ -1,0 +1,80 @@
+#version: '3.8'   # Docker Compose file version (standard)
+
+services: # Define all the containers you want to run
+  config1: # OBS for some reason, docker-compose renames the container to bdsproject3-config1-1
+    image: mongo:5 # Use the official MongoDB image
+    container_name: config1 # Name the container
+    ports:
+      - "26001:27017" # Map the container port to the host port
+    networks: 
+      - mongo-cluster # Connect to the custom network
+    command: ["mongod", "--configsvr", "--replSet", "configReplSet", "--port", "27017"] # Start as a config server
+    volumes: 
+      - ./data/config1:/data/db # Save data in a local folder on computer
+      - ./init-scripts:/init-scripts # Mount init scripts to the container
+
+  config2:
+    image: mongo:5
+    container_name: config2
+    ports:
+      - "26002:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--configsvr", "--replSet", "configReplSet", "--port", "27017"]
+    volumes:
+      - ./data/config2:/data/db
+      - ./init-scripts:/init-scripts 
+
+  config3:
+    image: mongo:5
+    container_name: config3
+    ports:
+      - "26003:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--configsvr", "--replSet", "configReplSet", "--port", "27017"]
+    volumes:
+      - ./data/config3:/data/db
+      - ./init-scripts:/init-scripts 
+
+  shard1:
+    image: mongo:5
+    container_name: shard1
+    ports:
+      - "27019:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard1ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard1:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard2:
+    image: mongo:5
+    container_name: shard2
+    ports:
+      - "27020:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard2:/data/db
+      - ./init-scripts:/init-scripts
+
+  mongos:       # Router (entrypoint for queries)
+    image: mongo:5 
+    container_name: mongos
+    ports:
+      - "27018:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongos", "--configdb", "configReplSet/config1:27017,config2:27017,config3:27017"]
+    depends_on:
+      - config1
+      - config2
+      - config3
+    volumes:
+      - ./init-scripts:/init-scripts
+      - /Users/sauletrep/Documents/VU/BDA/BDSproject3:/data
+networks:  # Define a custom network for the containers
+  mongo-cluster:
