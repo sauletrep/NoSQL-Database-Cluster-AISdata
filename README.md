@@ -25,15 +25,19 @@ initiate-shard1.js
 initiate-shard2.js
    
 initiate-shards.js
+
 }
+
 }
 
 Note: When running the Python script, an ais_clean.json file will be created. When running setup_mongo_cluster.sh, a folder named data with subfolders (config1, config2, config3, shard1, and shard2) will also be added to your setup.
 
 ## Steps to run:
+Step 1:
 Run the Python script project3.py
 This will generate the ais_clean.json file.
 
+Step 2:
 In the terminal, run:
 ./setup_mongo_cluster.sh
 This will set up the MongoDB sharded cluster with sharded AIS data.
