@@ -6,16 +6,27 @@
 To run the code for Task 1, it is important to have the correct folder setup so that Docker and MongoDB can cooperate.
 
 ## Folder setup:
-BDSproject3/
-├── docker-compose.yml
-├── setup_mongo_cluster.sh
-├── project3.py
-├── aisdk-2023-05-01.csv
-└── init-scripts/
-   ├── initiate-config.js
-   ├── initiate-shard1.js
-   ├── initiate-shard2.js
-   └── initiate-shards.js
+BDSproject3/ {
+
+docker-compose.yml
+
+setup_mongo_cluster.sh
+
+project3.py
+
+aisdk-2023-05-01.csv
+
+init-scripts/ {
+
+initiate-config.js
+   
+initiate-shard1.js
+   
+initiate-shard2.js
+   
+initiate-shards.js
+}
+}
 
 Note: When running the Python script, an ais_clean.json file will be created. When running setup_mongo_cluster.sh, a folder named data with subfolders (config1, config2, config3, shard1, and shard2) will also be added to your setup.
 
