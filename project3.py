@@ -13,7 +13,7 @@ def data(file_path):
     inferred_dtypes = infersample_df.dtypes.astype(str).to_dict() # Infer dtypes from small sample data
 
     # Step 2: Load the sample data with inferred dtypes
-    sample_df = pd.read_csv(file_path, nrows=10000000, dtype=inferred_dtypes) # Read first 10,000,000 rows with inferred dtypes
+    sample_df = pd.read_csv(file_path, nrows=10000, dtype=inferred_dtypes) # Read first 10,000 rows with inferred dtypes
     sample_df.columns = sample_df.columns.str.strip("# ") # Remove trailing whitespaces and "#" from column names
 
     # Step 3: Load full dataset with panda using inferred dtypes
