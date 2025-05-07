@@ -1,5 +1,5 @@
-# NoSQL-Database-Cluster-AISdata
- ASSINGMENT 3 Big Data Analysis
+# NoSQL Database Cluster with AISdata
+ ASSINGMENT 3 - Big Data Analysis
 
 # TASK 1
 
@@ -56,9 +56,9 @@ This will ensure that you have execution permission for setup_mongo_cluster.sh. 
 * 3.0 Testing final setup
 * 3.1 Check the shards status
 
-# 1.0 MongoDB Sharded Cluster Setup
+# 1.0 MongoDB sharded cluster setup
 
-## 1.1 Config Servers and Mongos Router
+## 1.1 Config servers and mongos router
 The first step was to define the MongoDB sharded cluster using Docker Compose. We created a docker-compose.yml file with the following components:
 
 * Config Servers (config1, config2, config3): Each running MongoDB as a config server with replica sets. These manage the metadata and routing information for the sharded cluster. Three config servers are necessary for redundancy and fault tolerance.
@@ -195,7 +195,7 @@ docker exec -it shard2 mongosh /init-scripts/initiate-shard2.js
 ```
 We checked the status of each shard using rs.status(), confirming that both shard1 and shard2 were PRIMARY meaning the nodes are properly configured and should be part of the cluster, and each shard is correctly initialized with its own replica set (shard1ReplSet for shard 1 and shard2ReplSet for shard 2).
 
-## 1.3 Registering Shards with Mongos
+## 1.3 Registering shards with mongos
 Next, we wanted to register the shards with the mongos router using the initiate-shards.js script. Since the mongos container did not initially have access to the initialization scripts, we added the init-scripts volume to the mongos service in the docker-compose.yml file
 ```
     volumes:
@@ -220,7 +220,7 @@ Mongos is connected and active.
 OBS! shardedDataDistribution: undefined. This is ok for now as we had not sharded any collections yet, nor enabled sharding on any user database. 
 Also, collections: {}, which  means the config database has no sharded collections either, but again this is expected for now.
 
-## 1.4 Testing Sharding
+## 1.4 Testing sharding
 To test the sharding functionality, we created a sharded collection. First we enabled sharding on the database myTestDB and then created a collection myColl with a hashed _id field:
 ```
 sh.enableSharding("myTestDB");
@@ -290,7 +290,7 @@ This command imports the JSON data into the ais database, specifically into the 
 After the import, the output confirmed that 10 million documents were successfully inserted into the database, and no documents failed to import.
 
 
-## 2.1 Sharding Configuration in MongoDB
+## 2.1 Sharding configuration in MongoDB
 
 Sharding is essential for managing large datasets by distributing data across multiple servers (shards). It helps scale the database horizontally. In MongoDB, we need to configure sharding explicitly. 
 
@@ -362,3 +362,109 @@ and then ran the script with:
 ```
 ## 3.1 Check the shards status
 We cheked the shards with sh.status(), and saw that the shards were initialised corretly, ais_data collection was successfully sharded by the MMSI field and balancer was running. The balancing process was ongoing due to our choice of importing the data before sharding it. After relising this made the balancer take way too long to finish, we just simply reordered the data imorting and sharding. 
+
+
+# 4.0 Adding replica sets to the shards
+To make the MongoDB sharded cluster resilient against container failures, we replaced the single-node shard containers with 3-node replica sets for each shard. This ensures that if one node in a shard fails, the remaining replicas can take over. Previously, we only had shard1 and shard2, each running a standalone mongod instance and both as primary. If either container failed, the corresponding shard became unavailable.
+
+
+## 4.1 Summary of adding replica sets
+
+We replaced each shard with three containers (replica set members):
+
+* shard1 was replaced by shard1a, shard1b, shard1c,
+
+* shard2 was replaced by shard2a, shard2b, shard2c.
+
+This gave us two full 3-node replica sets, one for each shard.
+
+
+## 4.2 Docker compose modifications
+
+First we updated docker-compose by remoing services shard1 and shard to, and adding:
+```
+shard1a:
+    image: mongo:5
+    container_name: shard2a
+    ports:
+      - "27020:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard2a:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard1b:
+    image: mongo:5
+    container_name: shard2b
+    ports:
+      - "27120:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard2b:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard1c:
+    image: mongo:5
+    container_name: shard2c
+    ports:
+      - "27220:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard2c:/data/db
+      - ./init-scripts:/init-scripts
+```
+as well as the same again for the three replicas of shard2. 
+
+We also defined the network explicitly as a bridge. So still in docker-compose we added driver: bridge in
+```
+networks:  
+  mongo-cluster:
+    driver: bridge
+```
+
+## 4.3 Initialisation scripts modifications
+We updated initiate-shard1.js from: 
+```
+rs.initiate({
+    _id: "shard1ReplSet",
+    members: [
+        { _id: 0, host: "shard1:27017" }
+    ]
+});
+```
+to:
+```
+rs.initiate({
+    _id: "shard1ReplSet",
+    members: [
+      { _id: 0, host: "shard1a:27017" },
+      { _id: 1, host: "shard1b:27017" },
+      { _id: 2, host: "shard1c:27017" }
+    ]
+  })
+```
+and same for in initiate-shard2.js with shard2a, shard2b and shard2c.
+
+Then we added the new replicas in initiate-shards.js by extending to:
+```
+sh.addShard("shard1ReplSet/shard1a:27017,shard1b:27017,shard1c:27017");
+sh.addShard("shard2ReplSet/shard2a:27017,shard2b:27017,shard2c:27017");
+```
+## 4.4 Shell script modifications
+In setup_mongo_scluster.sh, we updated the data directories from:
+```
+mkdir -p data/config1 data/config2 data/config3 data/shard1 data/shard2
+```
+With this updated version that includes all replica members:
+```
+mkdir -p data/config1 data/config2 data/config3 \
+         data/shard1a data/shard1b data/shard1c \
+         data/shard2a data/shard2b data/shard2c
+```
+
