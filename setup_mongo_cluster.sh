@@ -2,7 +2,9 @@
 
 # Create required data directories for MongoDB volumes
 echo "Creating necessary data directories..."
-mkdir -p data/config1 data/config2 data/config3 data/shard1 data/shard2
+mkdir -p data/config1 data/config2 data/config3 \
+         data/shard1a data/shard1b data/shard1c \
+         data/shard2a data/shard2b data/shard2c
 
 # Start Docker containers using Docker Compose
 echo "Starting Docker containers..."
@@ -13,28 +15,33 @@ echo "Waiting for MongoDB containers to start..."
 sleep 10  # Adjust the sleep time to ensure containers are up
 
 # Run the init scripts for config servers
-echo "Initializing config servers..."
+echo "Initialising config servers..."
 docker exec -it config1 mongosh /init-scripts/initiate-config.js
 
 # Wait until config servers are fully up 
 echo "Waiting for config servers..."
 sleep 10
 
-# Initialize shard1 and shard2
-echo "Initializing shard1..."
-docker exec -it shard1 mongosh /init-scripts/initiate-shard1.js
-echo "Initializing shard2..."
-docker exec -it shard2 mongosh /init-scripts/initiate-shard2.js
-# Wait until shards are fully up 
-echo "Waiting for shards..."
+# Initialise shard1 and shard2
+echo "Initialising shard1..."
+docker exec -it shard1a mongosh /init-scripts/initiate-shard1.js
 sleep 20
 
-# Initialize the mongos router
-echo "Initializing mongos..."
+echo "Initialising shard2..."
+docker exec -it shard2a mongosh /init-scripts/initiate-shard2.js
+sleep 20
+
+# Wait until shards are fully up 
+echo "Waiting for shards..."
+sleep 100
+
+# Initialise the mongos router
+echo "Initialising mongos..."
 docker exec -it mongos mongosh /init-scripts/initiate-shards.js
 # Wait until mongos router is fully up 
 echo "Waiting for mongos router..."
 sleep 20
+echo "NoSQL database cluster created"
 
 # Import and sort the AIS data
 echo "5 steps to import and sort the AIS data"
