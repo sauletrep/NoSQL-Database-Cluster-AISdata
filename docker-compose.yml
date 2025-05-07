@@ -36,29 +36,76 @@ services: # Define all the containers you want to run
     volumes:
       - ./data/config3:/data/db
       - ./init-scripts:/init-scripts 
-
-  shard1:
+  shard1a:
     image: mongo:5
-    container_name: shard1
+    container_name: shard1a
     ports:
       - "27019:27017"
     networks:
       - mongo-cluster
     command: ["mongod", "--shardsvr", "--replSet", "shard1ReplSet", "--port", "27017"]
     volumes:
-      - ./data/shard1:/data/db
+      - ./data/shard1a:/data/db
       - ./init-scripts:/init-scripts
 
-  shard2:
+  shard1b:
     image: mongo:5
-    container_name: shard2
+    container_name: shard1b
+    ports:
+      - "27119:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard1ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard1b:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard1c:
+    image: mongo:5
+    container_name: shard1c
+    ports:
+      - "27219:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard1ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard1c:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard2a:
+    image: mongo:5
+    container_name: shard2a
     ports:
       - "27020:27017"
     networks:
       - mongo-cluster
     command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
     volumes:
-      - ./data/shard2:/data/db
+      - ./data/shard2a:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard2b:
+    image: mongo:5
+    container_name: shard2b
+    ports:
+      - "27120:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard2b:/data/db
+      - ./init-scripts:/init-scripts
+
+  shard2c:
+    image: mongo:5
+    container_name: shard2c
+    ports:
+      - "27220:27017"
+    networks:
+      - mongo-cluster
+    command: ["mongod", "--shardsvr", "--replSet", "shard2ReplSet", "--port", "27017"]
+    volumes:
+      - ./data/shard2c:/data/db
       - ./init-scripts:/init-scripts
 
   mongos:       # Router (entrypoint for queries)
@@ -76,5 +123,7 @@ services: # Define all the containers you want to run
     volumes:
       - ./init-scripts:/init-scripts
       - /Users/sauletrep/Documents/VU/BDA/BDSproject3:/data
+
 networks:  # Define a custom network for the containers
   mongo-cluster:
+    driver: bridge
