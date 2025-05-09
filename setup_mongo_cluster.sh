@@ -8,7 +8,7 @@ mkdir -p data/config1 data/config2 data/config3 \
 
 # Start Docker containers using Docker Compose
 echo "Starting Docker containers..."
-docker-compose up -d
+docker compose up -d
 
 # Wait until MongoDB containers are fully up (adjust the sleep time if needed)
 echo "Waiting for MongoDB containers to start..."
@@ -49,6 +49,8 @@ echo "5 steps to import and sort the AIS data (CSV version, 1M rows)"
 # Step 1: Create an empty database and collection
 echo "Step 1: Create empty database and collection..."
 docker exec -it mongos mongosh --eval 'use ais; db.createCollection("ais_data")'
+docker exec -it mongos mongosh --eval 'use ais; db.createCollection("raw_vessels_limited")'
+docker exec -it mongos mongosh --eval 'use ais; db.createCollection("clean_vessels")'
 
 # Step 2: Enable sharding on the 'ais' database
 echo "Step 2: Enable sharding on the database..."
@@ -57,10 +59,14 @@ docker exec -it mongos mongosh --eval 'sh.enableSharding("ais")'
 # Step 3: Create an index on the 'MMSI' field and shard the collection
 echo "Step 3: Create index on MMSI for sharding..."
 docker exec -it mongos mongosh --eval 'use ais; db.ais_data.createIndex({ MMSI: 1 })'
+docker exec -it mongos mongosh --eval 'use ais; db.raw_vessels_limited.createIndex({ MMSI: 1 })'
+docker exec -it mongos mongosh --eval 'use ais; db.clean_vessels.createIndex({ MMSI: 1 })'
 
 # Step 4: Shard the collection on MMSI
 echo "Step 4: Shard the collection on MMSI..."
 docker exec -it mongos mongosh --eval 'sh.shardCollection("ais.ais_data", { MMSI: 1 })'
+docker exec -it mongos mongosh --eval 'sh.shardCollection("ais.raw_vessels_limited", { MMSI: 1 })'
+docker exec -it mongos mongosh --eval 'sh.shardCollection("ais.clean_vessels", { MMSI: 1 })'
 
 # Step 5: Extract first 1M rows (plus header), copy to container, import to MongoDB
 echo "Step 5: Import first 1,000,000 rows from CSV into MongoDB..."
