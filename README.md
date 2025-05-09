@@ -1,6 +1,14 @@
 # NoSQL Database Cluster with AISdata
  ASSINGMENT 3 - Big Data Analysis
 
+`project3.py` - wrapper code that runs all tasks
+
+`constants.py` - holds all defined constants (file_path, chunk_size, collection names, mongodb connection, etc...)
+
+`utils.py` - libraries and function definitions.
+
+`output/` - code outputs (summary and plots)
+
 # TASK 1
 
 To run the code for Task 1, it is important to have the correct folder setup so that Docker and MongoDB can cooperate.
@@ -40,6 +48,8 @@ chmod +x setup_mongo_cluster.sh
 ```
 This will ensure that you have execution permission for setup_mongo_cluster.sh. After running this command, retry 
 ./setup_mongo_cluster.sh
+
+`python3 project3.py` 
 
 # Documentation of the process for task 1
 
@@ -468,3 +478,25 @@ mkdir -p data/config1 data/config2 data/config3 \
          data/shard2a data/shard2b data/shard2c
 ```
 
+# Tasks 2-4
+
+- Task 2: Loads AIS vessel data from a CSV file and inserts it into a MongoDB collection (raw_vessel_data) in parallel chunks.
+
+- Task 3: Reads the raw data from MongoDB, filters out noisy or invalid records (e.g. bad coordinates, low-frequency vessels), and writes the cleaned data to a new collection (clean_vessel_data) using parallel processing.
+
+- Task 4: Reads the cleaned data from MongoDB, calculates time differences (delta t) between consecutive data points per vessel, and generates summary statistics and histograms.
+
+All tasks are run from a single Python script with functions for each step - `project3.py`
+
+`python3 project3.py`
+
+**Delta t Histogram (ms):**
+
+![Delta t Histogram](output/delta_t_histogram.png)
+
+The delta t histogram shows that most of vessel position updates occur at very short intervals — this is expected, because AIS GPS signals are typically transmitted frequently for tracking purposes. However, there are some outliers where the time between updates is much longer, possibly due to signal loss, system downtime or some other reasons
+
+To better visualize these rare large gaps, a second histogram was created using a logarithmic scale. This makes it easier to observe and interpret the distribution of outlier values.
+**Delta t Histogram (Log Scale):**
+
+![Log Delta t Histogram](output/log_delta.png)
