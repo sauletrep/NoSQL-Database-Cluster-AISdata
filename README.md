@@ -1,5 +1,13 @@
 # NoSQL Database Cluster with AISdata
  ASSINGMENT 3 - Big Data Analysis
+ 
+ Team - Roland Gulbinovič, Saule Tipple Trepekunaite, Darius Krulikovskis
+
+### Important:
+in `setup_mongo_cluster.sh` we are using `docker compose`. From what we've seen, on some older versions of docker the command might be `docker-compose`.
+
+
+### The main codes/folders:
 
 `project3.py` - wrapper code that runs all tasks
 
@@ -34,6 +42,11 @@ In the terminal, run:
 ./setup_mongo_cluster.sh
 ```
 This will set up the MongoDB sharded cluster with sharded AIS data.
+
+We can see the collections for raw and filtered data are also created:
+
+![collection](sharded_coll.png)
+
 
 ### Troubleshooting:
 If step 2 does not work, try the following command:
