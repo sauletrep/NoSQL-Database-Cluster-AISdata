@@ -26,15 +26,9 @@ BDSproject3
   * initiate-shard2.js
   * initiate-shards.js
 
-Note: When running the Python script, an ais_clean.json file will be created. When running setup_mongo_cluster.sh, a folder named data with subfolders (config1, config2, config3, shard1, and shard2) as well as folders db and configdb, will be added to your setup.
+When running setup_mongo_cluster.sh, folders db, configdb and data with subfolders (config1, config2, config3, shard1, and shard2) will be added to your setup, as well as a datafile ais_sample_1M.csv (the first 1,000,000 rows of data used for testing).
 
 ## Steps to run:
-Step 1:
-Run the Python script project3.py
-
-This will generate the ais_clean.json file.
-
-Step 2:
 In the terminal, run:
 ```
 ./setup_mongo_cluster.sh
@@ -48,8 +42,6 @@ chmod +x setup_mongo_cluster.sh
 ```
 This will ensure that you have execution permission for setup_mongo_cluster.sh. After running this command, retry 
 ./setup_mongo_cluster.sh
-
-`python3 project3.py` 
 
 # Documentation of the process for task 1
 
@@ -477,6 +469,38 @@ mkdir -p data/config1 data/config2 data/config3 \
          data/shard1a data/shard1b data/shard1c \
          data/shard2a data/shard2b data/shard2c
 ```
+# 5.0 Why did we even bother with .json?
+
+Remove python code where we convert to .json and update data import part of setup_mongo_cluster.sh to
+```
+# Import and sort the AIS data from CSV (limit: 1,000,000 rows)
+echo "5 steps to import and sort the AIS data (CSV version, 1M rows)"
+
+# Step 1: Create an empty database and collection
+echo "Step 1: Create empty database and collection..."
+docker exec -it mongos mongosh --eval 'use ais; db.createCollection("ais_data")'
+
+# Step 2: Enable sharding on the 'ais' database
+echo "Step 2: Enable sharding on the database..."
+docker exec -it mongos mongosh --eval 'sh.enableSharding("ais")'
+
+# Step 3: Create an index on the 'MMSI' field and shard the collection
+echo "Step 3: Create index on MMSI for sharding..."
+docker exec -it mongos mongosh --eval 'use ais; db.ais_data.createIndex({ MMSI: 1 })'
+
+# Step 4: Shard the collection on MMSI
+echo "Step 4: Shard the collection on MMSI..."
+docker exec -it mongos mongosh --eval 'sh.shardCollection("ais.ais_data", { MMSI: 1 })'
+
+# Step 5: Extract first 1M rows (plus header), copy to container, import to MongoDB
+echo "Step 5: Import first 1,000,000 rows from CSV into MongoDB..."
+head -n 1000001 aisdk-2023-05-01.csv > ais_sample_1M.csv
+docker cp ais_sample_1M.csv mongos:/data/ais_sample_1M.csv
+
+docker exec -it mongos bash -c 'mongoimport --host localhost --port 27017 --db ais --collection ais_data --type csv --file /data/ais_sample_1M.csv --headerline'
+```
+
+This uses the .csv data directly (here only extracting 1,000,000 rows of data into a seperate file) so that it will be more compatible with the other tasks. 
 
 # Tasks 2-4
 
