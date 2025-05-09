@@ -43,29 +43,31 @@ echo "Waiting for mongos router..."
 sleep 20
 echo "NoSQL database cluster created"
 
-# Import and sort the AIS data
-echo "5 steps to import and sort the AIS data"
+# Import and sort the AIS data from CSV (limit: 1,000,000 rows)
+echo "5 steps to import and sort the AIS data (CSV version, 1M rows)"
 
-# Create an empty database and collection
+# Step 1: Create an empty database and collection
 echo "Step 1: Create empty database and collection..."
 docker exec -it mongos mongosh --eval 'use ais; db.createCollection("ais_data")'
 
-# Enable sharding on the 'ais' database
+# Step 2: Enable sharding on the 'ais' database
 echo "Step 2: Enable sharding on the database..."
 docker exec -it mongos mongosh --eval 'sh.enableSharding("ais")'
 
-# Create an index on the 'MMSI' field and shard the collection
+# Step 3: Create an index on the 'MMSI' field and shard the collection
 echo "Step 3: Create index on MMSI for sharding..."
 docker exec -it mongos mongosh --eval 'use ais; db.ais_data.createIndex({ MMSI: 1 })'
 
-# Import the JSON data to the MongoDB container
+# Step 4: Shard the collection on MMSI
 echo "Step 4: Shard the collection on MMSI..."
 docker exec -it mongos mongosh --eval 'sh.shardCollection("ais.ais_data", { MMSI: 1 })'
 
-# Import the JSON data to the MongoDB container now that sharding is enabled
-echo "Step 5: Import data to MongoDB..."
-docker cp ais_clean.json mongos:/data/ais_clean.json
-docker exec -it mongos bash -c 'mongoimport --host localhost --port 27017 --db ais --collection ais_data --file /data/ais_clean.json --type json'
+# Step 5: Extract first 1M rows (plus header), copy to container, import to MongoDB
+echo "Step 5: Import first 1,000,000 rows from CSV into MongoDB..."
+head -n 1000001 aisdk-2023-05-01.csv > ais_sample_1M.csv
+docker cp ais_sample_1M.csv mongos:/data/ais_sample_1M.csv
+
+docker exec -it mongos bash -c 'mongoimport --host localhost --port 27017 --db ais --collection ais_data --type csv --file /data/ais_sample_1M.csv --headerline'
 
 # All done!
 echo "MongoDB sharded cluster setup is complete!"
